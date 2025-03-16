@@ -1,0 +1,134 @@
+from django.shortcuts import render
+import os
+import json
+import numpy as np
+import pickle
+import pandas as pd
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.http import HttpResponse
+from .models import Symptom, UserProfile, Hospital
+from datetime import datetime
+from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer
+
+# Load the trained model (Ensure the path is correct)
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
+
+
+with open(MODEL_PATH, "rb") as model_file:
+    model = pickle.load(model_file)
+
+# Example: Define symptom columns (Replace this with actual features used in your model)
+SYMPTOM_COLUMNS = [
+    "Gatal", "Ruam kulit", "Erupsi kulit nodular", "Bersin terus-menerus", "Menggigil",
+    "Kedinginan", "Nyeri sendi", "Asam lambung", "Sariawan di lidah", "Penyusutan otot",
+    "Muntah", "Sensasi terbakar saat buang air kecil", "Bercak saat buang air kecil", "Kelelahan",
+    "Kenaikan berat badan", "Kecemasan", "Tangan dan kaki dingin", "Perubahan suasana hati",
+    "Penurunan berat badan", "Gelisah", "Lesu", "Bercak di tenggorokan", "Kadar gula darah tidak teratur",
+    "Batuk", "Demam tinggi", "Mata cekung", "Sesak napas", "Berkeringat", "Dehidrasi",
+    "Gangguan pencernaan", "Sakit kepala", "Kulit menguning", "Urin gelap", "Mual",
+    "Kehilangan nafsu makan", "Nyeri di belakang mata", "Sakit punggung", "Sembelit",
+    "Nyeri perut", "Diare", "Demam ringan", "Urin kuning", "Mata menguning", "Gagal hati akut",
+    "Kelebihan cairan dalam tubuh", "Perut membengkak", "Pembengkakan kelenjar getah bening",
+    "Rasa tidak enak badan", "Penglihatan kabur dan terdistorsi", "Dahak", "Iritasi tenggorokan",
+    "Mata merah", "Tekanan sinus", "Hidung berair", "Hidung tersumbat", "Nyeri dada",
+    "Kelemahan pada anggota tubuh", "Detak jantung cepat", "Nyeri saat buang air besar",
+    "Nyeri di daerah anus", "Tinja berdarah", "Iritasi di anus", "Nyeri leher", "Pusing",
+    "Kram", "Mudah memar", "Obesitas", "Kaki bengkak", "Pembuluh darah bengkak",
+    "Wajah dan mata bengkak", "Pembesaran kelenjar tiroid", "Kuku rapuh", "Pembengkakan ekstremitas",
+    "Rasa lapar berlebihan", "Kontak seksual di luar nikah", "Bibir kering dan kesemutan",
+    "Bicara cadel", "Nyeri lutut", "Nyeri sendi pinggul", "Kelemahan otot", "Leher kaku",
+    "Pembengkakan sendi", "Kekakuan gerakan", "Sensasi berputar", "Kehilangan keseimbangan",
+    "Ketidakstabilan saat berjalan", "Kelemahan pada satu sisi tubuh", "Kehilangan indera penciuman",
+    "Ketidaknyamanan kandung kemih", "Bau urin yang menyengat", "Perasaan ingin buang air kecil terus-menerus",
+    "Sering buang angin", "Gatal di dalam tubuh", "Tampilan toksik (typhos)", "Depresi",
+    "Mudah marah", "Nyeri otot", "Gangguan sensorik", "Bintik merah di seluruh tubuh",
+    "Sakit perut", "Menstruasi tidak normal", "Bercak warna tidak normal pada kulit",
+    "Mata berair", "Nafsu makan meningkat", "Sering buang air kecil", "Riwayat keluarga",
+    "Dahak berlendir", "Dahak berwarna karat", "Kurang konsentrasi", "Gangguan penglihatan",
+    "Menerima transfusi darah", "Menerima suntikan tidak steril", "Koma", "Pendarahan lambung",
+    "Perut kembung", "Riwayat konsumsi alkohol", "Kelebihan cairan tubuh", "Darah dalam dahak",
+    "Pembuluh darah menonjol di betis", "Jantung berdebar", "Nyeri saat berjalan",
+    "Jerawat bernanah", "Komedo", "Kulit bersisik", "Kulit mengelupas", "Serpihan seperti perak pada kulit",
+    "Lekukan kecil pada kuku", "Kuku meradang", "Lepuhan", "Luka merah di sekitar hidung",
+    "Kerak kuning yang keluar dari kulit"
+]
+
+@api_view(['GET'])
+def get_symptoms(request):
+    symptoms = Symptom.objects.all().order_by("name")
+    serializer = SymptomSerializer(symptoms, many=True)
+    return Response(serializer.data)
+
+@csrf_exempt
+def predict_disease(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            symptom_ids = data.get("symptoms", [])
+
+            if not symptom_ids:
+                return JsonResponse({"error": "No symptoms provided"}, status=400)
+
+            # Fetch symptom names
+            symptom_names = list(Symptom.objects.filter(symptom_id__in=symptom_ids).values_list("name", flat=True))
+
+            # Check if all IDs were found
+            if len(symptom_names) != len(symptom_ids):
+                missing_ids = set(symptom_ids) - set(Symptom.objects.values_list("id", flat=True))
+                print(f"⚠️ Warning: Some symptom IDs not found in the database: {missing_ids}")
+                return JsonResponse({"error": f"Symptom IDs not found: {missing_ids}"}, status=400)
+
+            # Convert symptoms into a DataFrame
+            symptom_vector = pd.DataFrame([np.zeros(len(SYMPTOM_COLUMNS))], columns=SYMPTOM_COLUMNS)
+
+            # Mark selected symptoms as 1
+            for symptom in symptom_names:
+                if symptom in SYMPTOM_COLUMNS:
+                    symptom_vector[symptom] = 1
+                else:
+                    print(f"⚠️ Warning: Symptom '{symptom}' not found in SYMPTOM_COLUMNS")
+
+            # Make prediction
+            prediction = model.predict_proba(symptom_vector)
+            predicted_index = np.argmax(prediction)  # Index of highest probability
+            predicted_disease = model.classes_[predicted_index]  # Disease label
+            confidence_score = prediction[0][predicted_index]  # Confidence score
+
+            return JsonResponse({
+                "disease": predicted_disease,
+                "confidence_score": round(confidence_score, 1)  # Round for readability
+            })
+
+        except Exception as e:
+            print("❌ Exception occurred:", str(e))  # Debugging
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+@api_view(['POST'])
+def register_user(request):
+    try:
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User registered successfully!"}, status=201)
+        else:
+            return Response(serializer.errors, status=400)  # Return validation errors
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+def get_hospitals(request):
+    hospitals = Hospital.objects.all()
+    serializer = HospitalSerializer(hospitals, many=True)
+    return Response(serializer.data)
+
+def get_photo(request, facility_id):
+    hospitals = hospitals.objects.get(facility_id=facility_id)
+    if hospitals.photo:
+        return HttpResponse(hospitals.photo, content_type="image/jpeg")  # Adjust if PNG
+    return HttpResponse(status=404)
