@@ -81,14 +81,9 @@ WSGI_APPLICATION = 'medicai_backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'Cqc9V8D7h8pDk6Jq',
-        'HOST': 'db.erktilgkdxsmoohvmrtx.supabase.co',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default="postgresql://postgres:Cqc9V8D7h8pDk6Jq@db.erktilgkdxsmoohvmrtx.supabase.co:5432/postgres"
+    )
 }
 
 
