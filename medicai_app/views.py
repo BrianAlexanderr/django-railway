@@ -153,7 +153,7 @@ def get_recommended_doctors(request, disease_id):
         doctor_ids = DoctorSpeciality.objects.filter(disease=disease).values_list('doctor_id', flat=True)
 
         # Retrieve doctor details
-        doctors = Doctor.objects.filter(id__in=doctor_ids)
+        doctors = Doctor.objects.filter(doctor_id__in=doctor_ids)
 
         # Serialize the doctor data
         serializer = DoctorSerializer(doctors, many=True)
