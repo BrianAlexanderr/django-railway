@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'medicai_backend.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default="postgresql://postgres:Cqc9V8D7h8pDk6Jq@db.erktilgkdxsmoohvmrtx.supabase.co:5432/postgres"
+        default="postgresql://postgres.erktilgkdxsmoohvmrtx:Cqc9V8D7h8pDk6Jq@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
     )
 }
 
