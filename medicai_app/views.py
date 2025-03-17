@@ -146,7 +146,7 @@ def get_symptom_names(request):
 def get_recommended_doctors(request, disease_id):
     try:
         # Check if disease exists
-        disease = Disease.objects.get(id=disease_id)
+        disease = Disease.objects.get(disease_id=disease_id)
 
         # Find specializations related to the disease
         specializations = DoctorSpeciality.objects.filter(disease=disease).values_list('specialization', flat=True)
