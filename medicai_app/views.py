@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
 from django.http import HttpResponse
 from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality
 from datetime import datetime
@@ -145,18 +146,20 @@ def get_symptom_names(request):
 @api_view(['GET'])
 def get_recommended_doctors(request, disease_id):
     try:
-        # Check if disease exists
-        disease = Disease.objects.get(disease_id=disease_id)
+        # Find the disease object
+        disease = Disease.objects.get(disease_id=disease_id)  # Use `disease_id` from your SQL error
 
-        # Find specializations related to the disease
-        specializations = DoctorSpeciality.objects.filter(disease=disease).values_list('specialization', flat=True)
+        # Find doctor IDs that are linked to this disease
+        doctor_ids = DoctorSpeciality.objects.filter(disease=disease).values_list('doctor_id', flat=True)
 
-        # Find doctors with matching specializations
-        doctors = Doctor.objects.filter(specialization__in=specializations)
+        # Retrieve doctor details
+        doctors = Doctor.objects.filter(id__in=doctor_ids)
 
-        # Serialize doctors
+        # Serialize the doctor data
         serializer = DoctorSerializer(doctors, many=True)
-        return Response({"disease": disease.name, "recommended_doctors": serializer.data})
+        return Response({"doctors": serializer.data}, status=status.HTTP_200_OK)
 
     except Disease.DoesNotExist:
-        return Response({"error": "Disease not found"}, status=404)
+        return Response({"error": "Disease not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
