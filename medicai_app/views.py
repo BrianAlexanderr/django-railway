@@ -9,9 +9,10 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse
-from .models import Symptom, UserProfile, Hospital
+from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality
 from datetime import datetime
-from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer
+from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer
+from django.shortcuts import render
 
 # Load the trained model (Ensure the path is correct)
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
@@ -140,3 +141,22 @@ def get_symptom_names(request):
         symptom_ids = data.get("symptom_ids", [])
         symptoms = Symptom.objects.filter(id__in=symptom_ids).values("id", "name")
         return JsonResponse({"symptoms": list(symptoms)}, safe=False)
+
+@api_view(['GET'])
+def get_recommended_doctors(request, disease_id):
+    try:
+        # Check if disease exists
+        disease = Disease.objects.get(id=disease_id)
+
+        # Find specializations related to the disease
+        specializations = DoctorSpeciality.objects.filter(disease=disease).values_list('specialization', flat=True)
+
+        # Find doctors with matching specializations
+        doctors = Doctor.objects.filter(specialization__in=specializations)
+
+        # Serialize doctors
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response({"disease": disease.name, "recommended_doctors": serializer.data})
+
+    except Disease.DoesNotExist:
+        return Response({"error": "Disease not found"}, status=404)

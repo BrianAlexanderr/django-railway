@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Symptom, UserProfile, Hospital
+from .models import Symptom, UserProfile, Hospital, Doctor
 import base64  
 
 class SymptomSerializer(serializers.ModelSerializer):
@@ -23,3 +23,8 @@ class HospitalSerializer(serializers.ModelSerializer):
         if obj.photo:
             return base64.b64encode(obj.photo).decode('utf-8')
         return None 
+
+class DoctorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = ['id', 'name', 'specialization', 'hospital']
