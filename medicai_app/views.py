@@ -132,3 +132,11 @@ def get_photo(request, facility_id):
     if hospitals.photo:
         return HttpResponse(hospitals.photo, content_type="image/jpeg")  # Adjust if PNG
     return HttpResponse(status=404)
+
+@api_view(['POST'])
+def get_symptom_names(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        symptom_ids = data.get("symptom_ids", [])
+        symptoms = Symptom.objects.filter(id__in=symptom_ids).values("id", "name")
+        return JsonResponse({"symptoms": list(symptoms)}, safe=False)
