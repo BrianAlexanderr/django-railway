@@ -12,7 +12,7 @@ from rest_framework import status
 from django.http import HttpResponse
 from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality, DiagnosisHistory
 from datetime import datetime
-from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer
+from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer, HistorySerializer
 from django.shortcuts import render
 
 # Load the trained model (Ensure the path is correct)
@@ -213,3 +213,16 @@ def save_diagnosis(request):
     )
 
     return Response({'message': 'Diagnosis history saved successfully'}, status=201)
+
+@api_view(['GET'])
+def get_medical_history(request, user_id):
+    # Get all history records for the given user_id
+    history_records = DiagnosisHistory.objects.filter(user_id=user_id).order_by('-created_at')
+
+    if not history_records.exists():
+        return Response({'message': 'No medical history found for this user.'}, status=404)
+
+    # Serialize the data
+    serializer = HistorySerializer(history_records, many=True)
+
+    return Response(serializer.data, status=200)

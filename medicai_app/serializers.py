@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Symptom, UserProfile, Hospital, Doctor
+from .models import Symptom, UserProfile, Hospital, Doctor, DiagnosisHistory
 import base64  
 
 class SymptomSerializer(serializers.ModelSerializer):
@@ -28,3 +28,8 @@ class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = ['doctor_id', 'name', 'specialization', 'hospital_id']
+
+class HistorySerializer(serializers.Serializer):
+    class Meta:
+        model = DiagnosisHistory
+        fields = '__all__'
