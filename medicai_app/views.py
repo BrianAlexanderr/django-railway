@@ -148,7 +148,7 @@ def get_symptom_names(request):
     if request.method == "POST":
         data = json.loads(request.body)
         symptom_ids = data.get("symptom_ids", [])
-        symptoms = Symptom.objects.filter(symptom_id__in=symptom_ids).values("id", "name")
+        symptoms = Symptom.objects.filter(symptom_id__in=symptom_ids).values("symptom_id", "name")
         return JsonResponse({"symptoms": list(symptoms)}, safe=False)
 
 @api_view(['GET'])
