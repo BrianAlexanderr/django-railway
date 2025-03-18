@@ -201,7 +201,7 @@ def save_diagnosis(request):
     user_id = request.data.get('user_id')
     diagnosis = request.data.get('diagnosis')
     doctor_notes = request.data.get('doctor_notes', '')
-
+    symptoms = request.data.get('symptoms', [])
 
     if not user_id or not diagnosis:
         return Response({'error': 'Missing data'}, status=400)
@@ -210,6 +210,7 @@ def save_diagnosis(request):
         user_id=user_id,
         diagnosis=diagnosis,
         doctor_notes=doctor_notes,
+        symptoms=symptoms
     )
 
     return Response({'message': 'Diagnosis history saved successfully'}, status=201)

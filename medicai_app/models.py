@@ -65,7 +65,7 @@ class DiagnosisHistory(models.Model):
     diagnosis = models.CharField(max_length=255)  # Matches 'character varying'
     doctor_notes = models.TextField(null=True, blank=True)  # Matches 'text'
     created_at = models.DateTimeField(auto_now_add=True)  # Matches 'timestamp'
-    symptoms = ArrayField(models.IntegerField(), blank=True, default=list)
+    symptoms = ArrayField(models.TextField(), blank=True, default=list)
 
     class Meta:
         db_table = 'medicalhistory'
