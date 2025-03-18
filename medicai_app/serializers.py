@@ -29,7 +29,7 @@ class DoctorSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = ['doctor_id', 'name', 'specialization', 'hospital_id']
 
-class HistorySerializer(serializers.Serializer):
+class HistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = DiagnosisHistory
         fields = '__all__'
