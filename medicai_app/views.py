@@ -99,7 +99,15 @@ def predict_disease(request):
             predicted_disease = model.classes_[predicted_index]  # Disease label
             confidence_score = prediction[0][predicted_index]  # Confidence score
 
+            try:
+                disease = Disease.objects.get(name=predicted_disease)
+                disease_id = disease.disease_id  # Ensure this matches your model's column name
+            except Disease.DoesNotExist:
+                print(f"⚠️ Warning: Predicted disease '{predicted_disease}' not found in database")
+                return JsonResponse({"error": f"Disease '{predicted_disease}' not found in database"}, status=404)
+            
             return JsonResponse({
+                "disease_id" : disease_id,
                 "disease": predicted_disease,
                 "confidence_score": round(confidence_score, 1)  # Round for readability
             })
