@@ -140,7 +140,7 @@ def get_symptom_names(request):
     if request.method == "POST":
         data = json.loads(request.body)
         symptom_ids = data.get("symptom_ids", [])
-        symptoms = Symptom.objects.filter(id__in=symptom_ids).values("id", "name")
+        symptoms = Symptom.objects.filter(symptom_id__in=symptom_ids).values("id", "name")
         return JsonResponse({"symptoms": list(symptoms)}, safe=False)
 
 @api_view(['GET'])
@@ -163,3 +163,27 @@ def get_recommended_doctors(request, disease_id):
         return Response({"error": "Disease not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+def get_precautions(request):
+    try:
+        # Parse JSON request
+        data = json.loads(request.body.decode("utf-8"))
+        predicted_disease = data.get("disease", "").strip()
+
+        if not predicted_disease:
+            return JsonResponse({"error": "No disease provided"}, status=400)
+
+        # Retrieve the disease from the database
+        disease = Disease.objects.filter(name__iexact=predicted_disease).first()
+
+        if not disease:
+            return JsonResponse({"error": "Disease not found"}, status=404)
+
+        return JsonResponse({
+            "disease": disease.name,
+            "precautions": disease.precautions
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format"}, status=400)
