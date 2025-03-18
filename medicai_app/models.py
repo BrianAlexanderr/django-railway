@@ -57,3 +57,13 @@ class DoctorSpeciality(models.Model):
 
     class Meta:
         db_table = 'doctor_specialization'
+
+class DiagnosisHistory(models.Model):
+    history_id = models.AutoField(primary_key=True)
+    user_id = models.CharField(max_length=255)  # Matches 'character varying'
+    diagnosis = models.CharField(max_length=255)  # Matches 'character varying'
+    doctor_notes = models.TextField(null=True, blank=True)  # Matches 'text'
+    created_at = models.DateTimeField(auto_now_add=True)  # Matches 'timestamp'
+
+    class Meta:
+        db_table = 'medicalhistory'

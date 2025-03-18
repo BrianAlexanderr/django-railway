@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse
-from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality
+from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality, DiagnosisHistory
 from datetime import datetime
 from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer
 from django.shortcuts import render
@@ -195,3 +195,21 @@ def get_precautions(request):
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    
+@api_view(['POST'])
+def save_diagnosis(request):
+    user_id = request.data.get('user_id')
+    diagnosis = request.data.get('diagnosis')
+    doctor_notes = request.data.get('doctor_notes', '')
+
+
+    if not user_id or not diagnosis:
+        return Response({'error': 'Missing data'}, status=400)
+
+    history = DiagnosisHistory.objects.create(
+        user_id=user_id,
+        diagnosis=diagnosis,
+        doctor_notes=doctor_notes,
+    )
+
+    return Response({'message': 'Diagnosis history saved successfully'}, status=201)
