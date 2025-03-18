@@ -9,5 +9,5 @@ urlpatterns = [
     path('facilities/photo/<int:facility_id>/', get_photo, name='get_facility_photo'),
     path('get_symptom_names/', get_symptom_names, name="get_symptom_names"),
     path('doctors/<int:disease_id>/', get_recommended_doctors, name='get_recommended_doctors'),
-    path('api/get_precautions/', get_precautions, name='get_precautions'),
+    path('get_precautions/', get_precautions, name='get_precautions'),
 ]
