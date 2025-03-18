@@ -32,4 +32,4 @@ class DoctorSerializer(serializers.ModelSerializer):
 class HistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = DiagnosisHistory
-        fields = '__all__'
+        fields = ['history_id', 'user_id', 'diagnosis', 'doctor_notes', 'created_at', 'symptoms']
