@@ -13,20 +13,24 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import dj_database_url
 import os
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-sb98s3*+4)n%-4dt4zitb-7-4-q5s%cdxd+y5i4+&2n7%0_q6r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ['*']
 CORS_ALLOW_ALL_ORIGINS = True
@@ -81,9 +85,7 @@ WSGI_APPLICATION = 'medicai_backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default="postgresql://postgres.erktilgkdxsmoohvmrtx:Cqc9V8D7h8pDk6Jq@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
-    )
+    'default': dj_database_url.config(default=SUPABASE_URL, conn_max_age=600)
 }
 
 
