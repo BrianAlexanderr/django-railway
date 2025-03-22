@@ -19,11 +19,13 @@ from django.shortcuts import render
 
 # Load the trained model (Ensure the path is correct)
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
-
-le = LabelEncoder()
+LabelEncoderPath = os.path.join(os.path.dirname(__file__), "label_encoder.pkl")
 
 with open(MODEL_PATH, "rb") as model_file:
     model = pickle.load(model_file)
+
+with open(LabelEncoderPath, 'rb') as label_file:
+    le = pickle.load(label_file)
 
 # Example: Define symptom columns (Replace this with actual features used in your model)
 SYMPTOM_COLUMNS = [
@@ -61,9 +63,6 @@ SYMPTOM_COLUMNS = [
     "Kerak kuning yang keluar dari kulit"
 ]
 
-transform = SYMPTOM_COLUMNS
-
-le.fit_transform(transform)
 
 @api_view(['GET'])
 def get_symptoms(request):
@@ -100,17 +99,11 @@ def predict_disease(request):
                 else:
                     print(f"⚠️ Warning: Symptom '{symptom}' not found in SYMPTOM_COLUMNS")
             
-            #Convert into XGBoost DMatrix
-            dmatrix = xgb.DMatrix(symptom_vector)
-
-            # Make prediction
-            prediction = model.predict(dmatrix)
-            predicted_index = int(prediction[0]) 
-            predicted_disease = le.inverse_transform([predicted_index])[0]  # Convert to name
-            
-            # Get confidence scores
-            confidence_scores = model.predict_proba(dmatrix)
-            confidence_score = confidence_scores[0][predicted_index]  # Highest probability
+            # Predict disease
+            y_proba = model.predict_proba(symptom_vector)  # Get probabilities
+            predicted_index = np.argmax(y_proba, axis=1)[0]  # Get highest probability index
+            predicted_disease = le.inverse_transform(np.array([predicted_index]))[0]  # Convert index to disease name
+            confidence_score = round(y_proba[0][predicted_index], 2)  # Get confidence score
             
             try:
                 disease = Disease.objects.get(name=predicted_disease)
