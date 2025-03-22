@@ -4,6 +4,8 @@ import json
 import numpy as np
 import pickle
 import pandas as pd
+import xgboost as xgb
+from sklearn.preprocessing import LabelEncoder
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -18,6 +20,7 @@ from django.shortcuts import render
 # Load the trained model (Ensure the path is correct)
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
+le = LabelEncoder()
 
 with open(MODEL_PATH, "rb") as model_file:
     model = pickle.load(model_file)
@@ -92,13 +95,19 @@ def predict_disease(request):
                     symptom_vector[symptom] = 1
                 else:
                     print(f"⚠️ Warning: Symptom '{symptom}' not found in SYMPTOM_COLUMNS")
+            
+            #Convert into XGBoost DMatrix
+            dmatrix = xgb.DMatrix(symptom_vector)
 
             # Make prediction
-            prediction = model.predict_proba(symptom_vector)
-            predicted_index = np.argmax(prediction)  # Index of highest probability
-            predicted_disease = model.classes_[predicted_index]  # Disease label
-            confidence_score = prediction[0][predicted_index]  # Confidence score
-
+            prediction = model.predict(dmatrix)
+            predicted_index = int(prediction[0]) 
+            predicted_disease = le.inverse_transform([predicted_index])[0]  # Convert to name
+            
+            # Get confidence scores
+            confidence_scores = model.predict_proba(dmatrix)
+            confidence_score = confidence_scores[0][predicted_index]  # Highest probability
+            
             try:
                 disease = Disease.objects.get(name=predicted_disease)
                 disease_id = disease.disease_id  # Ensure this matches your model's column name
