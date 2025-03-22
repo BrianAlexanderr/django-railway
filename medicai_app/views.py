@@ -103,7 +103,7 @@ def predict_disease(request):
             y_proba = model.predict_proba(symptom_vector)  # Get probabilities
             predicted_index = np.argmax(y_proba, axis=1)[0]  # Get highest probability index
             predicted_disease = le.inverse_transform(np.array([predicted_index]))[0]  # Convert index to disease name
-            confidence_score = round(y_proba[0][predicted_index], 2)  # Get confidence score
+            confidence_score = round(float(y_proba[0][predicted_index]), 2)  # Get confidence score
             
             try:
                 disease = Disease.objects.get(name=predicted_disease)
