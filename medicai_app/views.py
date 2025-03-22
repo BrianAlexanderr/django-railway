@@ -61,6 +61,10 @@ SYMPTOM_COLUMNS = [
     "Kerak kuning yang keluar dari kulit"
 ]
 
+transform = SYMPTOM_COLUMNS
+
+le.fit_transform(transform)
+
 @api_view(['GET'])
 def get_symptoms(request):
     symptoms = Symptom.objects.all().order_by("name")
