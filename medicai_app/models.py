@@ -69,3 +69,20 @@ class DiagnosisHistory(models.Model):
 
     class Meta:
         db_table = 'medicalhistory'
+
+class Consultation(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='consultation')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='consultation')
+
+    class Meta:
+        db_table = 'consultation_chat'
+
+class Message(models.Model):
+    consultation = models.ForeignKey(Consultation,  on_delete=models.CASCADE, related_name='message')
+    sender = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True)
+    message = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'messages'

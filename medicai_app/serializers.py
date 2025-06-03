@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Symptom, UserProfile, Hospital, Doctor, DiagnosisHistory
+from .models import Symptom, UserProfile, Hospital, Doctor, DiagnosisHistory, Message, Consultation
 import base64  
 
 class SymptomSerializer(serializers.ModelSerializer):
@@ -33,3 +33,10 @@ class HistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = DiagnosisHistory
         fields = ['history_id', 'user_id', 'diagnosis', 'doctor_notes', 'created_at', 'symptoms']
+
+class MessageSerializer(serializers.ModelSerializer):
+    consultation = serializers.PrimaryKeyRelatedField(queryset=Consultation.objects.all())
+
+    class Meta:
+        model = Message
+        fields = ['message', 'sender_id', 'sent_at', 'consultation']

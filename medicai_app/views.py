@@ -10,11 +10,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework import status, generics, permissions
 from django.http import HttpResponse
-from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality, DiagnosisHistory
+from .models import Symptom, UserProfile, Hospital, Doctor, Disease, DoctorSpeciality, DiagnosisHistory, Message, Consultation
 from datetime import datetime
-from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer, HistorySerializer
+from .serializers import SymptomSerializer, UserSerializer, HospitalSerializer, DoctorSerializer, HistorySerializer, MessageSerializer
 from django.shortcuts import render
 
 # Load the trained model (Ensure the path is correct)
@@ -233,3 +235,61 @@ def get_medical_history(request, user_id):
     serializer = HistorySerializer(history_records, many=True)
 
     return Response(serializer.data, status=200)
+
+class MessageListView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        consultation_id = self.kwargs['consultation_id']
+        return Message.objects.filter(consultation_id=consultation_id).order_by('sent_at')
+    
+class SendMessageView(generics.CreateAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        consultation_id = self.request.data.get('consultation')
+        consultation = Consultation.objects.get(id=consultation_id)
+        sender_id = self.request.data.get('sender_id')
+        sender = None
+        if sender_id:
+            try:
+                sender = UserProfile.objects.get(user_id=sender_id)
+            except UserProfile.DoesNotExist:
+                print("UserProfile tidak ditemukan")
+        serializer.save(
+            sender=sender,  # if you're using UserProfile
+            consultation=consultation
+        )
+
+class GetOrCreateConsultationView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        doctor_id = request.data.get('doctor_id')
+        if not doctor_id:
+            return Response({'error': 'doctor_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            doctor = Doctor.objects.get(doctor_id=doctor_id)
+        except Doctor.DoesNotExist:
+            return Response({'error': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            # Ambil UserProfile berdasarkan user login (yang pakai Firebase UID)
+            user_profile = UserProfile.objects.get(user_id=user_id)
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Cari atau buat konsultasi baru
+        consultation, created = Consultation.objects.get_or_create(
+            user_id=user_profile.user_id,
+            doctor=doctor
+        )
+
+        return Response({
+            'consultation_id': consultation.id,
+            'created': created
+        }, status=status.HTTP_200_OK)
