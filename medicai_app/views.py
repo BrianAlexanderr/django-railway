@@ -7,6 +7,7 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.preprocessing import LabelEncoder
 from django.http import JsonResponse
+from django.db.models import OuterRef, Subquery, F
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -289,7 +290,46 @@ class GetOrCreateConsultationView(APIView):
             doctor=doctor
         )
 
-        return Response({
+        data = {
             'consultation_id': consultation.id,
             'created': created
-        }, status=status.HTTP_200_OK)
+        }
+        
+        json_string = json.dumps(data, ensure_ascii=False)
+
+        return Response(json.loads(json_string))
+
+def get_chat_list_for_patient(patient_id):
+    # Get consultations for this patient
+    consultations = Consultation.objects.filter(user_id=patient_id)
+
+    # Subquery to get latest message per consultation
+    latest_message_subquery = Message.objects.filter(
+        consultation_id=OuterRef('pk')
+    ).order_by('-sent_at')
+
+    consultations = consultations.annotate(
+        doctor_name=F('doctor__name'),
+        doctor_speciality=F('doctor__specialization'), 
+        last_message=Subquery(latest_message_subquery.values('message')[:1]),
+        last_message_time=Subquery(latest_message_subquery.values('sent_at')[:1]),
+    ).order_by('-last_message_time')
+
+    # Format the result for the API response
+    chat_list = []
+    for c in consultations:
+        chat_list.append({
+            'consultation_id': c.id,
+            'doctor_id': c.doctor_id,
+            'doctor_name': c.doctor_name,
+            'doctor_speciality': c.doctor_speciality,
+            'last_message': c.last_message or "",
+            'last_message_time': c.last_message_time,
+        })
+
+    return chat_list
+
+class PatientChatListAPIView(APIView):
+    def get(self, request, patient_id):
+        chats = get_chat_list_for_patient(patient_id)
+        return Response(chats)
